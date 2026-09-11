@@ -7,6 +7,7 @@ from app.routers import (
     accounts,
     analytics,
     auth,
+    backtests,
     budgets,
     categories,
     health,
@@ -62,6 +63,7 @@ def create_app() -> FastAPI:
     app.include_router(portfolios.router)
     app.include_router(analytics.router)
     app.include_router(insights.router)
+    app.include_router(backtests.router)
 
     return app
 
