@@ -29,5 +29,19 @@ services:
     volumes:
       - ./backend:/app
 
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Baked into the static bundle at build time (Vite env vars aren't
+        # readable at container runtime) — this is the URL as seen by the
+        # user's *browser*, not by other containers, so it's the mapped
+        # host port below, not the internal "backend" service name.
+        VITE_API_URL: http://localhost:8000
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
 volumes:
   postgres_data:

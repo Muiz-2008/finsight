@@ -233,14 +233,29 @@ alembic upgrade head
 alembic revision --autogenerate -m "description"
 ```
 
+### Frontend
+
+Requires Node 22+.
+
+```bash
+cd frontend
+npm install
+cp .env.example .env   # VITE_API_URL defaults to http://localhost:8000
+npm run dev
+```
+
+Then visit `http://localhost:5173`. `npm run build` type-checks and produces a production bundle in `dist/`; `npm run lint` runs oxlint (the Vite-scaffolded default).
+
 ## Docker
 
-Requires Docker Desktop.
+Requires Docker Desktop. Runs Postgres, the backend, and the frontend together.
 
 ```bash
 cp backend/.env.example backend/.env   # then set a real SECRET_KEY
 docker compose up --build
 ```
+
+Frontend at `http://localhost:5173`, backend at `http://localhost:8000`. The frontend's API URL is baked into its static bundle at Docker build time (`VITE_API_URL` build arg in `docker-compose.yml`) — a Vite limitation, not a compose oversight: env vars aren't readable inside a static bundle at container *runtime*, only at build time.
 
 ## Deploying to Production
 
@@ -268,8 +283,8 @@ This repo includes `render.yaml` at the root, so Render can deploy it as a Bluep
 
 1. In Vercel, **Add New → Project**, import this repo.
 2. Set **Root Directory** to `frontend` (this is a monorepo — Vercel needs to be told the frontend doesn't live at the repo root).
-3. Framework preset: Vite (Vercel should auto-detect it from `frontend/package.json`).
-4. Set the environment variable `VITE_API_URL` to your Render backend URL from step 2 (e.g. `https://finsight-backend.onrender.com`).
+3. Framework preset: Vite (Vercel should auto-detect it from `frontend/package.json`). `frontend/vercel.json` already handles the SPA rewrite React Router needs (without it, refreshing on e.g. `/dashboard` would 404).
+4. Set the environment variable `VITE_API_URL` to your Render backend URL from step 2 (e.g. `https://finsight-backend.onrender.com`) — this gets compiled into the build, same build-time-not-runtime caveat as the Docker build arg above.
 5. Deploy. Take the resulting `https://*.vercel.app` URL back to step 2 and set it as `CORS_ORIGINS` on Render (then redeploy the backend so the new CORS origin takes effect).
 
 ### Order matters
@@ -284,6 +299,8 @@ Deploy the database first, the backend second (it needs the database URL), and t
 - **Look-ahead bias in the backtester, proven, not just avoided.** It's easy to *write* a backtester that doesn't look ahead and much harder to *prove* it doesn't. The engine applies a strategy's day-*t* signal to the day-*t*-to-*t+1* return with a strict lag; two tests construct a price series with a single sharp jump and check that a signal decided before the jump captures it while a signal decided after cannot retroactively capture a return that already happened — the exact property a subtly-broken implementation would get backwards.
 - **Market data without a paid API or flaky test runs.** Real market data (`yfinance`) is free but unofficial, rate-limited, and often unreachable from CI runners or sandboxed dev environments — exactly where this project most needs reliability. The market data layer is a `Protocol` with two implementations: a deterministic, seeded synthetic-price generator (same symbol + date range → same prices, every run, everywhere, no network) used by default, and a real `yfinance` provider swapped in via one config value for production use.
 - **Deriving state instead of storing it.** Portfolio holdings could have been a mutable `PortfolioHolding` row updated on every trade — simpler to query, but able to drift from the trade history that's supposed to be its source of truth. Holdings are instead recomputed from the full `Trade` ledger on every read. More computation per request; structurally impossible to have a holding disagree with the trades that produced it.
+- **A database constraint gap the DDL made visible only when compared against itself.** SQLAlchemy's `Enum(native_enum=False)` looks like it should add a `CHECK` constraint restricting a column to valid enum values — it doesn't, by default (`create_constraint` defaults to `False`). All four enum-valued columns (`transaction_type`, `trade_type`, `account_type`, `asset_class`) were validated only by Pydantic at the API boundary, with nothing stopping an invalid value via any other path. Caught by literally compiling each table's DDL and reading it, not by inspection — the fix (`create_constraint=True` plus matching hand-written `CHECK` clauses in the migration) surfaced a second, related issue: SQLAlchemy's default enum persistence stores the Python member's *name* (`"EXPENSE"`), not its *value* (`"expense"`) — inconsistent with the lowercase strings the API actually sends. Fixed with `values_callable`.
+- **A static frontend can't read runtime environment variables — only build-time ones.** `VITE_API_URL` looks like an ordinary env var, but Vite inlines it into the JavaScript bundle at `npm run build` time; setting it as a container `environment:` entry (rather than a Docker build `arg`) would silently do nothing, since by the time the container runs, the bundle is already frozen. Both `docker-compose.yml` and the Vercel deployment steps pass it at build time specifically because of this.
 
 ## Known Limitations & Future Improvements
 
@@ -294,6 +311,9 @@ Deploy the database first, the backend second (it needs the database URL), and t
 - Only one backtesting strategy (moving-average crossover) is implemented, chosen deliberately over three shallow ones; the `Strategy` shape is structured to make adding momentum/mean-reversion straightforward.
 - Monte Carlo simulation was scoped as optional/stretch in the original plan and not built in this pass.
 - No email verification or password reset flow.
+- The frontend stores its JWT in `localStorage`, which is readable by any script on the page — vulnerable to XSS-based token theft. A production system would use an httpOnly cookie with a refresh-token flow instead; documented inline in `frontend/src/api/client.ts` and on the Settings page, not hidden.
+- No dedicated UI for spending anomaly detection (`GET /analytics/anomalies` is implemented and tested on the backend, but wasn't in the frontend page list this pass).
+- Frontend visual rendering (actual chart output, responsive layout) was verified via successful build + a curled dev-server response, not by visual/screenshot inspection — an honest gap in this environment rather than a claimed-and-skipped step.
 
 ---
 
