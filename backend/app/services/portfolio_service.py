@@ -122,15 +122,24 @@ def get_portfolio_summary(
     )
 
 
-def get_portfolio_risk(
-    db: Session,
-    user_id: uuid.UUID,
-    portfolio_id: uuid.UUID,
-    lookback_days: int = 252,
-    risk_free_rate: float = 0.0,
-) -> PortfolioRisk:
-    """Risk metrics over the trailing `lookback_days`, using *current*
-    holdings' quantities applied across the whole window.
+class PortfolioValueSeries:
+    def __init__(
+        self,
+        dates: list[date_],
+        values: list[float],
+        per_asset_returns: dict[str, np.ndarray],
+        warning: str | None,
+    ) -> None:
+        self.dates = dates
+        self.values = values
+        self.per_asset_returns = per_asset_returns
+        self.warning = warning
+
+
+def portfolio_value_series(
+    db: Session, portfolio_id: uuid.UUID, lookback_days: int
+) -> PortfolioValueSeries | None:
+    """Reconstruct daily portfolio market value over the trailing window.
 
     LIMITATION, stated plainly: this treats today's position sizes as if
     they were held for the entire lookback period, not the actual
@@ -140,13 +149,56 @@ def get_portfolio_risk(
     A fully trade-aware version would replay the exact position size held
     on each historical date — meaningfully more complex, and out of scope
     here. This is a common simplification in lightweight portfolio tools,
-    not a hidden bug; it's called out here and in the API response.
+    not a hidden bug; it's surfaced via the `warning` field to callers.
     """
-    get_owned_portfolio(db, user_id, portfolio_id)
     holdings, assets_by_id = _holdings_and_assets(db, portfolio_id)
     open_holdings = {aid: h for aid, h in holdings.items() if h.quantity > 0}
-
     if not open_holdings:
+        return None
+
+    end = date_.today()
+    start = end - timedelta(days=lookback_days)
+    market_data = MarketDataService(db)
+
+    price_series: dict[uuid.UUID, dict[date_, Decimal]] = {
+        asset_id: dict(market_data.get_history(assets_by_id[asset_id], start, end))
+        for asset_id in open_holdings
+    }
+
+    common_dates = sorted(set.intersection(*(set(s.keys()) for s in price_series.values())))
+    warning = None
+    if len(common_dates) < 20:
+        warning = (
+            f"Only {len(common_dates)} overlapping trading days of price history available; "
+            "risk metrics based on very short histories are unreliable."
+        )
+
+    values = [
+        float(sum(open_holdings[aid].quantity * price_series[aid][d] for aid in open_holdings))
+        for d in common_dates
+    ]
+
+    per_asset_returns: dict[str, np.ndarray] = {}
+    for asset_id in open_holdings:
+        prices = [float(price_series[asset_id][d]) for d in common_dates]
+        asset_returns = daily_returns(prices)
+        if asset_returns.size > 0:
+            per_asset_returns[assets_by_id[asset_id].symbol] = asset_returns
+
+    return PortfolioValueSeries(common_dates, values, per_asset_returns, warning)
+
+
+def get_portfolio_risk(
+    db: Session,
+    user_id: uuid.UUID,
+    portfolio_id: uuid.UUID,
+    lookback_days: int = 252,
+    risk_free_rate: float = 0.0,
+) -> PortfolioRisk:
+    get_owned_portfolio(db, user_id, portfolio_id)
+    series = portfolio_value_series(db, portfolio_id, lookback_days)
+
+    if series is None:
         return PortfolioRisk(
             portfolio_id=portfolio_id,
             lookback_days=lookback_days,
@@ -160,51 +212,21 @@ def get_portfolio_risk(
             warning="No open positions to assess.",
         )
 
-    end = date_.today()
-    start = end - timedelta(days=lookback_days)
-    market_data = MarketDataService(db)
-
-    price_series: dict[uuid.UUID, dict[date_, Decimal]] = {}
-    for asset_id in open_holdings:
-        history = market_data.get_history(assets_by_id[asset_id], start, end)
-        price_series[asset_id] = dict(history)
-
-    common_dates = sorted(set.intersection(*(set(s.keys()) for s in price_series.values())))
-    warning = None
-    if len(common_dates) < 20:
-        warning = (
-            f"Only {len(common_dates)} overlapping trading days of price history available; "
-            "risk metrics based on very short histories are unreliable."
-        )
-
-    portfolio_values = [
-        float(sum(open_holdings[aid].quantity * price_series[aid][d] for aid in open_holdings))
-        for d in common_dates
-    ]
-
-    returns = daily_returns(portfolio_values)
-
-    per_asset_returns = {}
-    for asset_id in open_holdings:
-        prices = [float(price_series[asset_id][d]) for d in common_dates]
-        asset_returns = daily_returns(prices)
-        if asset_returns.size > 0:
-            per_asset_returns[assets_by_id[asset_id].symbol] = asset_returns
-
+    returns = daily_returns(series.values)
     correlations = (
-        correlation_matrix(per_asset_returns) if len(per_asset_returns) >= 2 else {}
+        correlation_matrix(series.per_asset_returns) if len(series.per_asset_returns) >= 2 else {}
     )
     cumulative = cumulative_returns(returns) if returns.size > 0 else np.array([])
 
     return PortfolioRisk(
         portfolio_id=portfolio_id,
         lookback_days=lookback_days,
-        date_from=common_dates[0] if common_dates else None,
-        date_to=common_dates[-1] if common_dates else None,
+        date_from=series.dates[0] if series.dates else None,
+        date_to=series.dates[-1] if series.dates else None,
         annualized_volatility=annualized_volatility(returns),
         sharpe_ratio=sharpe_ratio(returns, risk_free_rate),
-        max_drawdown=max_drawdown(portfolio_values),
+        max_drawdown=max_drawdown(series.values),
         cumulative_return=float(cumulative[-1]) if cumulative.size > 0 else None,
         correlation_matrix=correlations,
-        warning=warning,
+        warning=series.warning,
     )

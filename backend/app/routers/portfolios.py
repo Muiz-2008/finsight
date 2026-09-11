@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
+from app.schemas.benchmark import BenchmarkComparison
 from app.schemas.portfolio import (
     PortfolioCreate,
     PortfolioRead,
@@ -14,7 +15,7 @@ from app.schemas.portfolio import (
     TradeRead,
 )
 from app.schemas.risk import PortfolioRisk
-from app.services import portfolio_service
+from app.services import benchmark_service, portfolio_service
 
 router = APIRouter(prefix="/api/v1/portfolios", tags=["portfolios"])
 
@@ -64,3 +65,16 @@ def portfolio_risk(
     db: Session = Depends(get_db),
 ) -> PortfolioRisk:
     return portfolio_service.get_portfolio_risk(db, current_user.id, portfolio_id, lookback_days)
+
+
+@router.get("/{portfolio_id}/benchmark", response_model=BenchmarkComparison)
+def portfolio_benchmark(
+    portfolio_id: uuid.UUID,
+    symbol: str = "SPY",
+    lookback_days: int = 252,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> BenchmarkComparison:
+    return benchmark_service.get_benchmark_comparison(
+        db, current_user.id, portfolio_id, symbol, lookback_days
+    )
