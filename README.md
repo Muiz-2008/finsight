@@ -38,9 +38,25 @@ docker compose up --build
 
 ## Tests
 
+Unit tests (`tests/unit`) are pure-Python and need no database. Integration
+tests (`tests/integration`) exercise real API endpoints against Postgres —
+run `docker compose up postgres` (or have a local Postgres reachable at
+`DATABASE_URL`) first, or let CI run them, since it starts its own Postgres
+service container.
+
 ```bash
 cd backend
 source .venv/bin/activate
-pytest
+pytest tests/unit          # no DB required
+pytest                      # full suite, requires Postgres reachable
 ruff check .
+```
+
+## Database migrations
+
+```bash
+cd backend
+source .venv/bin/activate
+alembic upgrade head              # apply migrations
+alembic revision --autogenerate -m "description"   # generate a new one from model changes
 ```
