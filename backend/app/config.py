@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,6 +17,22 @@ class Settings(BaseSettings):
     environment: str = "development"
 
     database_url: str = "postgresql+psycopg://finsight:finsight@localhost:5432/finsight"
+
+    @field_validator("database_url")
+    @classmethod
+    def use_psycopg_driver(cls, value: str) -> str:
+        """Managed Postgres providers (Render, Neon, Heroku-style hosts)
+        hand back a bare `postgresql://` or `postgres://` connection
+        string — correct standard, but SQLAlchemy needs the driver
+        specified explicitly (`+psycopg`) to know to use psycopg3, the
+        only Postgres driver this project installs. Normalizing here
+        means a connection string can be pasted from any provider as-is,
+        with no manual edit required before it works.
+        """
+        for scheme in ("postgresql://", "postgres://"):
+            if value.startswith(scheme):
+                return "postgresql+psycopg://" + value[len(scheme) :]
+        return value
 
     secret_key: str
     jwt_algorithm: str = "HS256"

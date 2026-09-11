@@ -18,10 +18,18 @@ services:
       - key: ENVIRONMENT
         value: production
       - key: DATABASE_URL
-        sync: false # set to your Neon (or other managed Postgres) connection string
+        fromDatabase:
+          name: finsight-db
+          property: connectionString
       - key: SECRET_KEY
         generateValue: true
       - key: CORS_ORIGINS
         sync: false # e.g. ["https://your-app.vercel.app"]
       - key: MARKET_DATA_PROVIDER
         value: local # set to "yfinance" for real market data
+
+databases:
+  - name: finsight-db
+    databaseName: finsight
+    user: finsight
+    plan: free
