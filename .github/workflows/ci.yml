@@ -12,6 +12,26 @@ jobs:
     defaults:
       run:
         working-directory: backend
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: finsight
+          POSTGRES_PASSWORD: finsight
+          POSTGRES_DB: finsight
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U finsight"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      SECRET_KEY: ci-test-secret-key
+      DATABASE_URL: postgresql+psycopg://finsight:finsight@localhost:5432/finsight
+
     steps:
       - uses: actions/checkout@v4
 
@@ -26,6 +46,4 @@ jobs:
         run: ruff check .
 
       - name: Run tests
-        env:
-          SECRET_KEY: ci-test-secret-key
         run: pytest
