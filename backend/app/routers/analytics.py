@@ -13,7 +13,8 @@ from app.schemas.analytics import (
     MonthlyCashflowPoint,
     SpendingSummary,
 )
-from app.services import analytics_service
+from app.schemas.anomaly import AnomalyRead
+from app.services import analytics_service, anomaly_service
 
 router = APIRouter(prefix="/api/v1/analytics", tags=["analytics"])
 
@@ -66,3 +67,13 @@ def budget_comparison(
 ) -> list[BudgetComparison]:
     start, end = _default_range(date_from, date_to)
     return analytics_service.get_budget_comparison(db, current_user.id, start, end)
+
+
+@router.get("/anomalies", response_model=list[AnomalyRead])
+def anomalies(
+    method: str = Query(default="zscore", pattern="^(zscore|iqr)$"),
+    lookback_days: int = Query(default=180, ge=7, le=730),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[AnomalyRead]:
+    return anomaly_service.detect_spending_anomalies(db, current_user.id, method, lookback_days)
