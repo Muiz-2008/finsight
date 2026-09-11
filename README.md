@@ -212,6 +212,8 @@ curl http://127.0.0.1:8000/health
 curl http://127.0.0.1:8000/health/db   # requires Postgres running
 ```
 
+A sample CSV (`docs/sample_transactions.csv`) is included for trying out `POST /api/v1/transactions/import` — register a user, create an account, then upload it via `/docs` or `curl`.
+
 ### Tests
 
 ```bash

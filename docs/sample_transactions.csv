@@ -1,0 +1,18 @@
+date,description,amount,category,type
+2026-08-01,Salary,4500.00,Income,income
+2026-08-02,Uber,18.50,Transport,expense
+2026-08-03,Whole Foods,86.42,Groceries,expense
+2026-08-04,Netflix,15.49,Entertainment,expense
+2026-08-05,Rent,1800.00,Housing,expense
+2026-08-06,Chipotle,12.75,Dining,expense
+2026-08-08,Electric Bill,64.30,Utilities,expense
+2026-08-09,Trader Joe's,52.10,Groceries,expense
+2026-08-10,Metro Card,33.00,Transport,expense
+2026-08-12,Amazon,64.99,Shopping,expense
+2026-08-14,Coffee Shop,6.25,Dining,expense
+2026-08-15,Gym Membership,40.00,Healthcare,expense
+2026-08-18,Freelance Payment,600.00,Income,income
+2026-08-20,Movie Tickets,28.00,Entertainment,expense
+2026-08-22,Grocery Run,74.88,Groceries,expense
+2026-08-25,Internet Bill,55.00,Utilities,expense
+2026-08-28,Dinner Out,48.60,Dining,expense
