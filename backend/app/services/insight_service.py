@@ -114,7 +114,3 @@ def generate_insights(db: Session, user_id: uuid.UUID) -> list[Insight]:
         if messages:
             saved.extend(repo.create_many(user_id, category, messages))
     return saved
-
-
-def list_insights(db: Session, user_id: uuid.UUID) -> list[Insight]:
-    return InsightRepository(db).list_for_user(user_id)
