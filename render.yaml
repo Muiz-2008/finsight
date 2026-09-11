@@ -10,8 +10,10 @@ services:
     # Runs migrations before every deploy, then starts the API on Render's
     # dynamically-assigned $PORT (the Dockerfile's own CMD hardcodes 8000
     # for local/docker-compose use, where we control the port ourselves —
-    # this overrides it for Render specifically).
-    startCommand: "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    # this overrides it for Render specifically). Docker-runtime services
+    # override their command with `dockerCommand`, not `startCommand` —
+    # the latter is only valid for buildpack-based runtimes.
+    dockerCommand: "sh -c \"alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT\""
     envVars:
       - key: ENVIRONMENT
         value: production
