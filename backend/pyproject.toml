@@ -32,6 +32,9 @@ dev = [
     "httpx>=0.27",
     "ruff>=0.7",
 ]
+yfinance = [
+    "yfinance>=0.2.40",
+]
 
 [tool.ruff]
 line-length = 100

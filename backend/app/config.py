@@ -23,6 +23,12 @@ class Settings(BaseSettings):
 
     cors_origins: list[str] = ["http://localhost:5173"]
 
+    # "local": deterministic synthetic prices, no network — the default,
+    # since it's what makes tests/CI/demos reproducible without a live API.
+    # "yfinance": real (free, unofficial) market data — set this in
+    # production via env var. See app/market_data/.
+    market_data_provider: str = "local"
+
 
 @lru_cache
 def get_settings() -> Settings:
