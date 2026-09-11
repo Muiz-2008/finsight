@@ -172,6 +172,8 @@ Two tiers, matched to what they test:
 - **Unit tests** (`backend/tests/unit`) — the entire analytics engine (cashflow, portfolio, risk, anomaly, insights, backtesting) plus security primitives (hashing, JWT), all pure-Python/NumPy, no database, no HTTP. 71 tests, run in ~2.5 seconds.
 - **Integration tests** (`backend/tests/integration`) — full API flows (register → login → authenticated request) against a real Postgres, with per-test table truncation for isolation.
 
+**Run integration tests against a dedicated `*_test` database, never your dev database.** The session-level fixture drops every application table on teardown — correct for disposable test infrastructure, catastrophic against real data. `conftest.py` enforces this: it refuses to run (loud failure, not silent data loss) unless `DATABASE_URL`'s database name ends in `_test`. This isn't hypothetical — it's a mistake this project's own development hit once, wiping a local dev database mid-demo.
+
 Deliberately tested: zero income (savings rate), zero volatility (Sharpe ratio), an empty portfolio, mismatched-length return series (beta/correlation), unauthenticated/invalid-token access, a nonexistent resource ID, look-ahead bias in the backtester (two dedicated tests), Z-score's known small-sample weakness (a documented limitation, proven with a test rather than just asserted).
 
 ## Security
@@ -220,7 +222,10 @@ A sample CSV (`docs/sample_transactions.csv`) is included for trying out `POST /
 cd backend
 source .venv/bin/activate
 pytest tests/unit    # no database required
-pytest                # full suite, requires Postgres reachable at DATABASE_URL
+# Full suite (incl. integration tests) needs its own database — its
+# teardown drops every table, so never point this at your dev database:
+createdb finsight_test
+DATABASE_URL=postgresql+psycopg://finsight:finsight@localhost:5432/finsight_test pytest
 ruff check .
 ```
 

@@ -15,8 +15,28 @@ def engine():
     Requires a real, reachable Postgres — these are integration tests by
     design. Locally: `docker compose up postgres` first. In CI: a
     Postgres service container (see .github/workflows/ci.yml).
+
+    The teardown below drops every table in Base.metadata — i.e. the
+    entire application schema — unconditionally. That's correct for a
+    disposable test database and catastrophic against a real one: this
+    exact fixture once wiped a local dev database mid-demo because
+    DATABASE_URL pointed at it instead of a dedicated test database. The
+    guard below turns "pointed at the wrong database" from a silent data
+    loss into an immediate, loud failure — refusing to run rather than
+    trusting whoever set DATABASE_URL to have gotten it right.
     """
-    engine = create_engine(get_settings().database_url)
+    db_url = get_settings().database_url
+    db_name = db_url.rsplit("/", 1)[-1].split("?", 1)[0]
+    if not db_name.endswith("_test"):
+        pytest.exit(
+            f"Refusing to run integration tests against database {db_name!r} — "
+            "its teardown drops every application table. Point DATABASE_URL at "
+            f"a database whose name ends in '_test' (e.g. {db_name}_test) before "
+            "running the full test suite.",
+            returncode=1,
+        )
+
+    engine = create_engine(db_url)
     Base.metadata.create_all(engine)
     yield engine
     Base.metadata.drop_all(engine)
