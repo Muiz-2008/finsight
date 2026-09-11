@@ -13,6 +13,7 @@ from app.schemas.portfolio import (
     TradeCreate,
     TradeRead,
 )
+from app.schemas.risk import PortfolioRisk
 from app.services import portfolio_service
 
 router = APIRouter(prefix="/api/v1/portfolios", tags=["portfolios"])
@@ -53,3 +54,13 @@ def portfolio_performance(
     db: Session = Depends(get_db),
 ) -> PortfolioSummary:
     return portfolio_service.get_portfolio_summary(db, current_user.id, portfolio_id)
+
+
+@router.get("/{portfolio_id}/risk", response_model=PortfolioRisk)
+def portfolio_risk(
+    portfolio_id: uuid.UUID,
+    lookback_days: int = 252,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> PortfolioRisk:
+    return portfolio_service.get_portfolio_risk(db, current_user.id, portfolio_id, lookback_days)

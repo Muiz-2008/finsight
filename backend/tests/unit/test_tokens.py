@@ -21,7 +21,14 @@ def test_decode_rejects_expired_token():
 
 def test_decode_rejects_tampered_token():
     token = create_access_token(subject="user-123")
-    tampered = token[:-1] + ("A" if token[-1] != "A" else "B")
+    # Flip a character in the middle of the signature, not the last one:
+    # base64url's final symbol only encodes a partial byte (the trailing
+    # bits are unused padding that decoding ignores), so roughly 1 in 4
+    # replacement characters there decode to the *same* bytes and the
+    # "tampered" token verifies anyway — a genuinely flaky assertion, not
+    # a flaky test runner. A middle character always changes a full byte.
+    mid = len(token) // 2
+    tampered = token[:mid] + ("A" if token[mid] != "A" else "B") + token[mid + 1 :]
 
     with pytest.raises(JWTError):
         decode_access_token(tampered)
