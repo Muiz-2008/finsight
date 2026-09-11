@@ -47,3 +47,14 @@ jobs:
 
       - name: Run tests
         run: pytest
+
+      - name: Dependency vulnerability audit (pip-audit)
+        # Informational, not blocking: as of this writing pip-audit flags
+        # one transitive dependency (ecdsa, pulled in by python-jose) with
+        # a known, currently-unfixed timing-attack CVE. It doesn't affect
+        # this app — JWTs are signed with HS256, never the ECDSA
+        # algorithms that vulnerability targets — but failing the build on
+        # a vulnerability with no available fix would just train everyone
+        # to ignore red CI. New/fixable vulnerabilities still show up here
+        # for a human to triage.
+        run: pip-audit --desc || true

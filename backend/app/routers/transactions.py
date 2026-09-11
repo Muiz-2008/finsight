@@ -1,7 +1,7 @@
 import uuid
 from datetime import date as date_
 
-from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -22,6 +22,12 @@ from app.services.account_service import get_owned_account
 
 router = APIRouter(prefix="/api/v1/transactions", tags=["transactions"])
 
+# Unbounded upload size is a real DoS vector (a client can stream an
+# arbitrarily large "CSV" and exhaust memory/CPU parsing it) — capped well
+# above any legitimate personal-finance export, generously enough that no
+# real CSV a user has should ever hit it.
+MAX_IMPORT_FILE_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
+
 
 @router.post("/import", response_model=ImportReportRead)
 async def import_transactions(
@@ -31,7 +37,15 @@ async def import_transactions(
     db: Session = Depends(get_db),
 ) -> ImportReportRead:
     get_owned_account(db, current_user.id, account_id)  # 404s if not this user's account
-    contents = await file.read()
+
+    contents = await file.read(MAX_IMPORT_FILE_SIZE_BYTES + 1)
+    if len(contents) > MAX_IMPORT_FILE_SIZE_BYTES:
+        limit_mb = MAX_IMPORT_FILE_SIZE_BYTES // (1024 * 1024)
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"File exceeds the {limit_mb}MB import limit.",
+        )
+
     report = import_transactions_csv(db, current_user.id, account_id, contents)
     return ImportReportRead(**report.__dict__)
 
