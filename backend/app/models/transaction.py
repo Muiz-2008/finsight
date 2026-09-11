@@ -45,7 +45,19 @@ class Transaction(Base):
     amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
     currency: Mapped[str] = mapped_column(default="USD")
     transaction_type: Mapped[TransactionType] = mapped_column(
-        Enum(TransactionType, native_enum=False, length=10), nullable=False
+        Enum(
+            TransactionType,
+            native_enum=False,
+            length=10,
+            create_constraint=True,
+            name="ck_transactions_transaction_type",
+            # SQLAlchemy stores the enum member's *name* ("EXPENSE") by
+            # default, not its *value* ("expense") — surprising for
+            # anyone reading the raw table, and inconsistent with the
+            # lowercase values the API sends/returns. Store .value instead.
+            values_callable=lambda enum_cls: [member.value for member in enum_cls],
+        ),
+        nullable=False,
     )
     description: Mapped[str] = mapped_column(nullable=False)
     date: Mapped[date_] = mapped_column(Date, nullable=False)

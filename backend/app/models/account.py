@@ -33,7 +33,15 @@ class Account(Base):
     )
     name: Mapped[str] = mapped_column(nullable=False)
     account_type: Mapped[AccountType] = mapped_column(
-        Enum(AccountType, native_enum=False, length=20), nullable=False
+        Enum(
+            AccountType,
+            native_enum=False,
+            length=20,
+            create_constraint=True,
+            name="ck_accounts_account_type",
+            values_callable=lambda enum_cls: [member.value for member in enum_cls],
+        ),
+        nullable=False,
     )
     currency: Mapped[str] = mapped_column(default="USD")
 

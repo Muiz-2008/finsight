@@ -38,7 +38,15 @@ class Trade(Base):
     )
 
     trade_type: Mapped[TradeType] = mapped_column(
-        Enum(TradeType, native_enum=False, length=10), nullable=False
+        Enum(
+            TradeType,
+            native_enum=False,
+            length=10,
+            create_constraint=True,
+            name="ck_trades_trade_type",
+            values_callable=lambda enum_cls: [member.value for member in enum_cls],
+        ),
+        nullable=False,
     )
     quantity: Mapped[Decimal] = mapped_column(Numeric(18, 6), nullable=False)
     price: Mapped[Decimal] = mapped_column(Numeric(14, 4), nullable=False)

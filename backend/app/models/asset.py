@@ -30,7 +30,15 @@ class Asset(Base):
     symbol: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
     name: Mapped[str] = mapped_column(nullable=False)
     asset_class: Mapped[AssetClass] = mapped_column(
-        Enum(AssetClass, native_enum=False, length=20), default=AssetClass.EQUITY
+        Enum(
+            AssetClass,
+            native_enum=False,
+            length=20,
+            create_constraint=True,
+            name="ck_assets_asset_class",
+            values_callable=lambda enum_cls: [member.value for member in enum_cls],
+        ),
+        default=AssetClass.EQUITY,
     )
     currency: Mapped[str] = mapped_column(default="USD")
 

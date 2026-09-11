@@ -52,6 +52,10 @@ def upgrade() -> None:
         sa.Column(
             "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
         ),
+        sa.CheckConstraint(
+            "account_type IN ('checking', 'savings', 'credit_card', 'cash', 'investment', 'other')",
+            name="ck_accounts_account_type",
+        ),
     )
     op.create_index("ix_accounts_user_id", "accounts", ["user_id"])
 
@@ -90,6 +94,10 @@ def upgrade() -> None:
         sa.Column("currency", sa.String(), nullable=False, server_default="USD"),
         sa.Column(
             "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
+        sa.CheckConstraint(
+            "asset_class IN ('equity', 'etf', 'crypto', 'benchmark', 'other')",
+            name="ck_assets_asset_class",
         ),
     )
     op.create_index("ix_assets_symbol", "assets", ["symbol"], unique=True)
@@ -133,6 +141,7 @@ def upgrade() -> None:
         sa.Column(
             "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
         ),
+        sa.CheckConstraint("trade_type IN ('buy', 'sell')", name="ck_trades_trade_type"),
     )
     op.create_index("ix_trades_portfolio_id", "trades", ["portfolio_id"])
 
@@ -182,6 +191,9 @@ def upgrade() -> None:
             "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
         ),
         sa.UniqueConstraint("account_id", "import_hash", name="uq_transaction_account_import_hash"),
+        sa.CheckConstraint(
+            "transaction_type IN ('income', 'expense')", name="ck_transactions_transaction_type"
+        ),
     )
     op.create_index("ix_transactions_user_id", "transactions", ["user_id"])
     op.create_index("ix_transactions_user_date", "transactions", ["user_id", "date"])
