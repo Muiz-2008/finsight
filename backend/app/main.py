@@ -10,6 +10,7 @@ from app.routers import (
     budgets,
     categories,
     health,
+    insights,
     portfolios,
     transactions,
     users,
@@ -60,6 +61,7 @@ def create_app() -> FastAPI:
     app.include_router(budgets.router)
     app.include_router(portfolios.router)
     app.include_router(analytics.router)
+    app.include_router(insights.router)
 
     return app
 
