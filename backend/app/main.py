@@ -1,8 +1,20 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.config import get_settings
-from app.routers import auth, health, users
+from app.routers import (
+    accounts,
+    analytics,
+    auth,
+    budgets,
+    categories,
+    health,
+    portfolios,
+    transactions,
+    users,
+)
+from app.services.exceptions import NotFoundError, ValidationError
 
 
 def create_app() -> FastAPI:
@@ -28,9 +40,26 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # Centralized so every router raises plain domain exceptions
+    # (NotFoundError, ValidationError) instead of importing FastAPI just to
+    # construct an HTTPException — keeps the service layer framework-free.
+    @app.exception_handler(NotFoundError)
+    async def not_found_handler(request: Request, exc: NotFoundError) -> JSONResponse:
+        return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"detail": str(exc)})
+
+    @app.exception_handler(ValidationError)
+    async def validation_error_handler(request: Request, exc: ValidationError) -> JSONResponse:
+        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": str(exc)})
+
     app.include_router(health.router)
     app.include_router(auth.router)
     app.include_router(users.router)
+    app.include_router(accounts.router)
+    app.include_router(categories.router)
+    app.include_router(transactions.router)
+    app.include_router(budgets.router)
+    app.include_router(portfolios.router)
+    app.include_router(analytics.router)
 
     return app
 

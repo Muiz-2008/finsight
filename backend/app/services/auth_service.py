@@ -4,6 +4,7 @@ from app.models.user import User
 from app.repositories.user_repository import UserRepository
 from app.schemas.user import UserCreate
 from app.security.hashing import hash_password, verify_password
+from app.services.category_service import seed_default_categories
 
 
 class EmailAlreadyRegisteredError(Exception):
@@ -19,11 +20,13 @@ def register_user(db: Session, user_in: UserCreate) -> User:
     if repo.get_by_email(user_in.email) is not None:
         raise EmailAlreadyRegisteredError(user_in.email)
 
-    return repo.create(
+    user = repo.create(
         email=user_in.email,
         hashed_password=hash_password(user_in.password),
         full_name=user_in.full_name,
     )
+    seed_default_categories(db, user.id)
+    return user
 
 
 def authenticate_user(db: Session, email: str, password: str) -> User:
