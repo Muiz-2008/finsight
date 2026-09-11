@@ -28,9 +28,7 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)) -> UserRead:
 
 
 @router.post("/login", response_model=Token)
-def login(
-    form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
-) -> Token:
+def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)) -> Token:
     """Uses OAuth2's standard "password" grant shape (username + password as
     form fields) so this endpoint works with FastAPI's built-in Swagger UI
     "Authorize" button and any generic OAuth2 client — not because FinSight

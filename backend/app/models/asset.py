@@ -26,9 +26,7 @@ class Asset(Base):
 
     __tablename__ = "assets"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     symbol: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
     name: Mapped[str] = mapped_column(nullable=False)
     asset_class: Mapped[AssetClass] = mapped_column(
@@ -36,6 +34,4 @@ class Asset(Base):
     )
     currency: Mapped[str] = mapped_column(default="USD")
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

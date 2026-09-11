@@ -118,8 +118,6 @@ def correlation_matrix(returns_by_symbol: dict[str, np.ndarray]) -> dict[str, di
 
     matrix = np.corrcoef([returns_by_symbol[s] for s in symbols])
     return {
-        row_symbol: {
-            col_symbol: float(matrix[i, j]) for j, col_symbol in enumerate(symbols)
-        }
+        row_symbol: {col_symbol: float(matrix[i, j]) for j, col_symbol in enumerate(symbols)}
         for i, row_symbol in enumerate(symbols)
     }

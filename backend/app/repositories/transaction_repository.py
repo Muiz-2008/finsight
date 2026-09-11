@@ -104,9 +104,7 @@ class TransactionRepository:
             for t in transactions
         ]
         stmt = pg_insert(Transaction).values(rows)
-        stmt = stmt.on_conflict_do_nothing(
-            index_elements=["account_id", "import_hash"]
-        )
+        stmt = stmt.on_conflict_do_nothing(index_elements=["account_id", "import_hash"])
         result = self._db.execute(stmt)
         self._db.commit()
         return result.rowcount or 0

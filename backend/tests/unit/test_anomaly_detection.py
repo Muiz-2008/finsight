@@ -7,7 +7,26 @@ from app.analytics.anomaly import iqr_anomalies, zscore_anomalies
 # outlier below, which demonstrates IQR catching the same case with a
 # much smaller sample).
 _BASELINE_SPENDING = [
-    28, 29, 30, 31, 32, 29, 30, 31, 28, 32, 30, 29, 31, 30, 28, 32, 29, 31, 30, 29,
+    28,
+    29,
+    30,
+    31,
+    32,
+    29,
+    30,
+    31,
+    28,
+    32,
+    30,
+    29,
+    31,
+    30,
+    28,
+    32,
+    29,
+    31,
+    30,
+    29,
 ]
 
 

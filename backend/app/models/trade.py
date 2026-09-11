@@ -26,9 +26,7 @@ class Trade(Base):
 
     __tablename__ = "trades"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     portfolio_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("portfolios.id", ondelete="CASCADE"),
@@ -47,6 +45,4 @@ class Trade(Base):
     fees: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0"))
     trade_date: Mapped[date_] = mapped_column(Date, nullable=False)
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

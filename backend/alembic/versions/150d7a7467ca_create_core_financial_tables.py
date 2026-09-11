@@ -181,9 +181,7 @@ def upgrade() -> None:
         sa.Column(
             "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
         ),
-        sa.UniqueConstraint(
-            "account_id", "import_hash", name="uq_transaction_account_import_hash"
-        ),
+        sa.UniqueConstraint("account_id", "import_hash", name="uq_transaction_account_import_hash"),
     )
     op.create_index("ix_transactions_user_id", "transactions", ["user_id"])
     op.create_index("ix_transactions_user_date", "transactions", ["user_id", "date"])
