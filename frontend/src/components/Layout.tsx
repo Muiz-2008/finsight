@@ -31,7 +31,13 @@ export function Layout() {
               className={({ isActive }) =>
                 `sidebar-link${isActive ? " active" : ""}`
               }
-              end={item.to === "/dashboard"}
+              // Exact match always: every nav route here is an independent
+              // sibling page (see App.tsx), not a parent/child pair, but
+              // "/transactions" is still a string-prefix of
+              // "/transactions/import" (same for "/portfolio" and
+              // "/portfolio/analytics") — without `end`, NavLink's default
+              // prefix matching highlighted both links at once.
+              end
             >
               <span className="dot" aria-hidden="true" />
               {item.label}
