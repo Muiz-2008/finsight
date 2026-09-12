@@ -5,6 +5,7 @@ import { useAsync } from "../hooks/useAsync";
 import {
   createPortfolio,
   getPerformance,
+  listKnownSymbols,
   listPortfolios,
   recordTrade,
 } from "../api/endpoints";
@@ -53,6 +54,12 @@ export default function Portfolio() {
   const [tradeForm, setTradeForm] = useState<TradeForm>(blankTrade());
   const [tradeError, setTradeError] = useState<string | null>(null);
   const [tradeSubmitting, setTradeSubmitting] = useState(false);
+
+  // A curated list, not free text: the API rejects any symbol it doesn't
+  // recognize (see backend/app/market_data/known_symbols.py), so letting
+  // someone type an arbitrary string here just meant discovering the typo
+  // after submitting instead of before.
+  const { data: knownSymbols } = useAsync(useCallback(() => listKnownSymbols(), []), []);
 
   const loadPerf = useCallback(() => {
     if (!selectedId) return Promise.resolve(null);
@@ -253,13 +260,20 @@ export default function Portfolio() {
               <div className="form-grid">
                 <div className="field">
                   <label>Symbol</label>
-                  <input
-                    type="text"
+                  <select
                     value={tradeForm.symbol}
                     onChange={(e) => setTradeForm((f) => ({ ...f, symbol: e.target.value }))}
-                    placeholder="AAPL"
                     required
-                  />
+                  >
+                    <option value="" disabled>
+                      Select a symbol…
+                    </option>
+                    {(knownSymbols ?? []).map((s) => (
+                      <option key={s.symbol} value={s.symbol}>
+                        {s.symbol} — {s.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="field">
                   <label>Side</label>

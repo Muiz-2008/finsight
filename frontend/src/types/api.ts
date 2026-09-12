@@ -120,6 +120,11 @@ export interface Anomaly {
   reason: string;
 }
 
+export interface KnownSymbol {
+  symbol: string;
+  name: string;
+}
+
 export interface Portfolio {
   id: string;
   name: string;

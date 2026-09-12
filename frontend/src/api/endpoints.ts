@@ -11,6 +11,7 @@ import type {
   Category,
   ImportReport,
   Insight,
+  KnownSymbol,
   MonthlyCashflow,
   Portfolio,
   PortfolioBenchmark,
@@ -166,6 +167,12 @@ export function getBudgetAnalytics(date_from?: string, date_to?: string) {
 export function getAnomalies(method: "zscore" | "iqr" = "zscore", lookback_days = 90) {
   const params = new URLSearchParams({ method, lookback_days: String(lookback_days) });
   return api.get<Anomaly[]>(`/api/v1/analytics/anomalies?${params.toString()}`);
+}
+
+// --- Assets ---
+
+export function listKnownSymbols() {
+  return api.get<KnownSymbol[]>("/api/v1/assets/symbols");
 }
 
 // --- Portfolios ---
