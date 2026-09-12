@@ -15,15 +15,7 @@ from datetime import date as date_
 from datetime import timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
-_BASE_PRICES: dict[str, float] = {
-    "AAPL": 180.0,
-    "MSFT": 420.0,
-    "GOOGL": 170.0,
-    "AMZN": 185.0,
-    "SPY": 550.0,
-    "QQQ": 480.0,
-}
-_DEFAULT_BASE_PRICE = 100.0
+from app.market_data.known_symbols import KNOWN_SYMBOLS
 
 _ANNUAL_DRIFT = 0.08  # ~8%/yr expected return, spread over trading days
 _ANNUAL_VOLATILITY = 0.22  # ~22%/yr, roughly equity-like
@@ -35,8 +27,16 @@ class LocalSyntheticProvider:
         if end < start:
             return []
 
+        known = KNOWN_SYMBOLS.get(symbol.upper())
+        if known is None:
+            # Deliberately not a fallback default price: generating
+            # plausible-looking data for an unrecognized symbol would make
+            # a typo silently "succeed" with fake output instead of
+            # failing with a clear error.
+            return []
+
         rng = random.Random(f"finsight-{symbol.upper()}")
-        base_price = _BASE_PRICES.get(symbol.upper(), _DEFAULT_BASE_PRICE)
+        base_price = known[1]
         daily_mu = _ANNUAL_DRIFT / _TRADING_DAYS_PER_YEAR
         daily_sigma = _ANNUAL_VOLATILITY / (_TRADING_DAYS_PER_YEAR**0.5)
 

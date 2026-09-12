@@ -6,11 +6,13 @@ from decimal import Decimal
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
+from app.market_data.known_symbols import KNOWN_SYMBOLS
 from app.market_data.local_provider import LocalSyntheticProvider
 from app.market_data.provider import MarketDataProvider
 from app.market_data.yfinance_provider import YFinanceProvider
 from app.models.asset import Asset
 from app.models.price_history import PriceHistory
+from app.services.exceptions import ValidationError
 
 
 def _build_provider() -> MarketDataProvider:
@@ -30,11 +32,24 @@ class MarketDataService:
         self._provider = provider or _build_provider()
 
     def get_or_create_asset(self, symbol: str, name: str | None = None) -> Asset:
+        """Looks up an existing Asset or creates one — but only for a
+        symbol the active provider actually recognizes. Without this
+        check, any typo silently became a real-looking position: the
+        local provider used to generate a plausible price series for
+        *any* string, and this method would happily create an Asset row
+        for it. Now an unrecognized symbol is a clear 400, not a fake
+        portfolio position.
+        """
         symbol = symbol.upper()
         asset = self._db.query(Asset).filter(Asset.symbol == symbol).first()
         if asset is not None:
             return asset
-        asset = Asset(symbol=symbol, name=name or symbol)
+
+        if self._provider.get_latest_price(symbol) is None:
+            raise ValidationError(f"{symbol!r} is not a recognized symbol")
+
+        known = KNOWN_SYMBOLS.get(symbol)
+        asset = Asset(symbol=symbol, name=name or (known[0] if known else symbol))
         self._db.add(asset)
         self._db.commit()
         self._db.refresh(asset)
