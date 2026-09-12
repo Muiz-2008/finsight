@@ -19,8 +19,11 @@ class TransactionCreate(BaseModel):
 
 
 class TransactionUpdate(BaseModel):
+    account_id: uuid.UUID | None = None
     category_id: uuid.UUID | None = None
     amount: Decimal | None = Field(default=None, gt=0, max_digits=14, decimal_places=2)
+    currency: str | None = Field(default=None, min_length=3, max_length=3)
+    transaction_type: TransactionType | None = None
     description: str | None = Field(default=None, min_length=1, max_length=255)
     date: date_ | None = None
 

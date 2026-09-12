@@ -64,17 +64,34 @@ def update_transaction(
 ) -> Transaction:
     transaction = get_owned_transaction(db, user_id, transaction_id)
 
-    if data.category_id is not None:
-        category = CategoryRepository(db).get(user_id, data.category_id)
-        if category is None:
-            raise ValidationError(f"category {data.category_id} not found")
-        transaction.category_id = data.category_id
-    if data.amount is not None:
-        transaction.amount = data.amount
-    if data.description is not None:
-        transaction.description = data.description
-    if data.date is not None:
-        transaction.date = data.date
+    # exclude_unset (not "is not None") is what actually matters here:
+    # category_id's type allows None both to mean "leave it alone" (field
+    # omitted from the request) and "clear it" (explicitly sent as null,
+    # e.g. picking "Uncategorized" in the edit form) — a plain `is not
+    # None` check can never tell those apart, so a category could never
+    # actually be cleared once set. Checking which keys were *present* in
+    # the request fixes that, and is what lets account_id/transaction_type
+    # be updated too instead of silently doing nothing when sent.
+    updates = data.model_dump(exclude_unset=True)
+
+    if "account_id" in updates:
+        get_owned_account(db, user_id, updates["account_id"])
+        transaction.account_id = updates["account_id"]
+    if "category_id" in updates:
+        category_id = updates["category_id"]
+        if category_id is not None and CategoryRepository(db).get(user_id, category_id) is None:
+            raise ValidationError(f"category {category_id} not found")
+        transaction.category_id = category_id
+    if "transaction_type" in updates:
+        transaction.transaction_type = updates["transaction_type"]
+    if "currency" in updates:
+        transaction.currency = updates["currency"]
+    if "amount" in updates:
+        transaction.amount = updates["amount"]
+    if "description" in updates:
+        transaction.description = updates["description"]
+    if "date" in updates:
+        transaction.date = updates["date"]
 
     transaction.import_hash = compute_import_hash(
         transaction.account_id,
