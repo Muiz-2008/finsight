@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import type { FormEvent } from "react";
-import { runBacktest } from "../api/endpoints";
+import { useAsync } from "../hooks/useAsync";
+import { listKnownSymbols, runBacktest } from "../api/endpoints";
 import type { BacktestResult } from "../types/api";
 import { ApiError } from "../api/client";
 import { formatCurrency, formatNumber, formatPercent, signClass } from "../lib/format";
@@ -34,6 +35,12 @@ export default function Backtesting() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<BacktestResult | null>(null);
+
+  // Same reasoning as the Portfolio trade form: the backend validates
+  // this against the same known-symbol set (see
+  // MarketDataService.get_or_create_asset), so free text just meant
+  // discovering a typo after submitting instead of before.
+  const { data: knownSymbols } = useAsync(useCallback(() => listKnownSymbols(), []), []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -81,12 +88,17 @@ export default function Backtesting() {
           <div className="form-grid">
             <div className="field">
               <label>Symbol</label>
-              <input
-                type="text"
+              <select
                 value={form.symbol}
                 onChange={(e) => setForm((f) => ({ ...f, symbol: e.target.value }))}
                 required
-              />
+              >
+                {(knownSymbols ?? []).map((s) => (
+                  <option key={s.symbol} value={s.symbol}>
+                    {s.symbol} — {s.name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="field">
               <label>Start date</label>

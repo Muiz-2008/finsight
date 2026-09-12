@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import type { FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { useAsync } from "../hooks/useAsync";
 import { importTransactions, listAccounts } from "../api/endpoints";
 import type { ImportReport } from "../types/api";
@@ -58,8 +59,8 @@ export default function TransactionImport() {
           {submitError && <div className="callout callout-error">{submitError}</div>}
           {accounts.length === 0 && (
             <div className="callout callout-warning">
-              You need at least one account before importing. Create one from the
-              Portfolio or Transactions page first.
+              You need at least one account before importing. Add one from the{" "}
+              <Link to="/transactions">Transactions</Link> page first.
             </div>
           )}
           <form onSubmit={handleSubmit}>

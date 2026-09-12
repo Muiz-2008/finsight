@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useAsync } from "../hooks/useAsync";
 import {
+  createAccount,
   createTransaction,
   deleteTransaction,
   listAccounts,
@@ -9,7 +10,7 @@ import {
   listTransactions,
   updateTransaction,
 } from "../api/endpoints";
-import type { Account, Category, Transaction, TransactionType } from "../types/api";
+import type { Account, AccountType, Category, Transaction, TransactionType } from "../types/api";
 import { ApiError } from "../api/client";
 import { formatCurrency, formatDate } from "../lib/format";
 import { LoadingState, ErrorState } from "../components/LoadingState";
@@ -86,6 +87,37 @@ export default function Transactions() {
     () => new Map(categories.map((c) => [c.id, c.name])),
     [categories],
   );
+
+  // Accounts are a prerequisite for every transaction (each one needs an
+  // account_id), but nothing else in the app exposes a way to create one —
+  // this was previously a dead end for a new user with zero accounts.
+  const [newAccountName, setNewAccountName] = useState("");
+  const [newAccountType, setNewAccountType] = useState<AccountType>("checking");
+  const [creatingAccount, setCreatingAccount] = useState(false);
+  const [accountError, setAccountError] = useState<string | null>(null);
+
+  async function handleCreateAccount(e: FormEvent) {
+    e.preventDefault();
+    setAccountError(null);
+    if (!newAccountName.trim()) {
+      setAccountError("Name is required.");
+      return;
+    }
+    setCreatingAccount(true);
+    try {
+      await createAccount({
+        name: newAccountName.trim(),
+        account_type: newAccountType,
+        currency: "USD",
+      });
+      setNewAccountName("");
+      loadRefs.reload();
+    } catch (err) {
+      setAccountError(err instanceof ApiError ? err.detail : "Create failed.");
+    } finally {
+      setCreatingAccount(false);
+    }
+  }
 
   const loadTx = useCallback(
     () =>
@@ -186,6 +218,60 @@ export default function Transactions() {
         <button type="button" className="btn btn-primary" onClick={openCreate}>
           + New transaction
         </button>
+      </div>
+
+      <div className="card">
+        <div className="card-header">
+          <h2>Accounts</h2>
+        </div>
+        {accountError && <div className="callout callout-error">{accountError}</div>}
+        <div className="filters-row" style={{ marginBottom: 0 }}>
+          <div className="field">
+            <label>Your accounts</label>
+            <div style={{ paddingTop: 6 }}>
+              {accounts.length === 0 ? (
+                <span className="muted">None yet — add one to start recording transactions.</span>
+              ) : (
+                accounts.map((a) => (
+                  <span key={a.id} className="badge badge-neutral" style={{ marginRight: 6 }}>
+                    {a.name}
+                  </span>
+                ))
+              )}
+            </div>
+          </div>
+          <form
+            onSubmit={handleCreateAccount}
+            style={{ display: "flex", gap: 8, alignItems: "flex-end" }}
+          >
+            <div className="field">
+              <label>New account name</label>
+              <input
+                type="text"
+                placeholder="e.g. Checking"
+                value={newAccountName}
+                onChange={(e) => setNewAccountName(e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label>Type</label>
+              <select
+                value={newAccountType}
+                onChange={(e) => setNewAccountType(e.target.value as AccountType)}
+              >
+                <option value="checking">Checking</option>
+                <option value="savings">Savings</option>
+                <option value="credit_card">Credit card</option>
+                <option value="cash">Cash</option>
+                <option value="investment">Investment</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <button type="submit" className="btn" disabled={creatingAccount}>
+              {creatingAccount ? "Adding…" : "Add account"}
+            </button>
+          </form>
+        </div>
       </div>
 
       <div className="card">
