@@ -96,13 +96,16 @@ def _portfolio_insights(db: Session, user_id: uuid.UUID) -> list[str]:
 
 
 def generate_insights(db: Session, user_id: uuid.UUID) -> list[Insight]:
-    """Recomputes every rule from live data and persists the results.
-    Nothing here is cached or reused across calls — insights reflect the
-    current state of the user's data every time they're requested.
+    """Recomputes every rule from live data and persists any genuinely new
+    results. Returns the user's current insight history, not just what
+    this call happened to insert — InsightRepository.create_many skips a
+    message identical to a recent one (see its docstring), so returning
+    only "saved" here would mean a repeat call with unchanged underlying
+    data returned an empty/shrunken list even though the earlier insight
+    is still valid and still worth showing.
     """
     today = date_.today()
     repo = InsightRepository(db)
-    saved: list[Insight] = []
 
     grouped = {
         "spending": _spending_insights(db, user_id, today),
@@ -112,5 +115,5 @@ def generate_insights(db: Session, user_id: uuid.UUID) -> list[Insight]:
     }
     for category, messages in grouped.items():
         if messages:
-            saved.extend(repo.create_many(user_id, category, messages))
-    return saved
+            repo.create_many(user_id, category, messages)
+    return repo.list_for_user(user_id)
