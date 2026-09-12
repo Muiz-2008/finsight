@@ -1,5 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { useTheme } from "../hooks/useTheme";
+import type { Theme } from "../hooks/useTheme";
 
 const NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard" },
@@ -13,8 +15,15 @@ const NAV_ITEMS = [
   { to: "/settings", label: "Settings" },
 ];
 
+const THEME_OPTIONS: { value: Theme; label: string }[] = [
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
+  { value: "system", label: "Auto" },
+];
+
 export function Layout() {
   const { user } = useAuth();
+  const { theme, setTheme } = useTheme();
 
   return (
     <div className="app-shell">
@@ -44,6 +53,19 @@ export function Layout() {
             </NavLink>
           ))}
         </nav>
+        <div className="theme-toggle" role="group" aria-label="Theme">
+          {THEME_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              className={`theme-toggle-btn${theme === opt.value ? " active" : ""}`}
+              onClick={() => setTheme(opt.value)}
+              aria-pressed={theme === opt.value}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
         <div className="sidebar-footer">{user?.email}</div>
       </aside>
       <div className="main-col">

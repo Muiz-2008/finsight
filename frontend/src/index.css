@@ -100,6 +100,52 @@
   }
 }
 
+/* Manual override: identical values to the prefers-color-scheme block
+   above, but unconditional — lets a user force dark mode via the
+   sidebar toggle even when their OS/browser is set to light. The
+   media-query block still handles "system" (no data-theme attribute
+   at all) and the not([data-theme="light"]) guard on it already lets
+   :root[data-theme="light"] win when the OS is dark; this block is
+   the missing third case (force dark on a light OS). */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-page: #0d0d0d;
+  --surface-card: #17181a;
+  --surface-sunken: #1c1d1f;
+  --surface-hover: #232426;
+
+  --text-primary: #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted: #8f8d87;
+
+  --border: #2c2c2a;
+  --border-strong: #383835;
+  --ring: rgba(255, 255, 255, 0.1);
+
+  --accent: #3987e5;
+  --accent-strong: #86b6ef;
+  --accent-wash: #17293f;
+
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-6: #2fb82f;
+  --series-7: #9085e9;
+  --series-8: #e66767;
+
+  --status-good: #0ca30c;
+  --status-good-bg: #103410;
+  --status-warning: #fab219;
+  --status-warning-bg: #3a2c0c;
+  --status-critical: #e66767;
+  --status-critical-bg: #3a1414;
+
+  --positive: #2fb82f;
+  --negative: #e66767;
+}
+
 /* ==========================================================================
    Reset & base
    ========================================================================== */
@@ -257,6 +303,38 @@ code,
   padding: 12px 20px;
   font-size: 12px;
   color: var(--text-muted);
+}
+
+.theme-toggle {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  margin: 4px 20px 12px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.theme-toggle-btn {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  font-family: var(--font-sans);
+  padding: 5px 0;
+  border-radius: calc(var(--radius-md) - 2px);
+  cursor: pointer;
+}
+
+.theme-toggle-btn:hover {
+  color: var(--text-primary);
+}
+
+.theme-toggle-btn.active {
+  background: var(--surface-card);
+  color: var(--text-primary);
+  box-shadow: 0 1px 2px var(--ring);
 }
 
 .main-col {
